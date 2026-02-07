@@ -144,7 +144,10 @@ struct ResultsView: View {
 
 struct SettingsView: View {
     @ObservedObject var viewModel: GamesViewModel
+    @StateObject private var apiKeyManager = APIKeyManager.shared
     @State private var selectedTeamID: String = ""
+    @State private var apiKeyInput: String = ""
+    @State private var showingAPIKeyInfo = false
     
     var body: some View {
         NavigationStack {
@@ -178,6 +181,48 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section {
+                    HStack {
+                        SecureField("API Key", text: $apiKeyInput)
+                            .textContentType(.password)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                        
+                        if apiKeyInput != apiKeyManager.apiKey {
+                            Button("Save") {
+                                apiKeyManager.apiKey = apiKeyInput.isEmpty ? "123" : apiKeyInput
+                                Task {
+                                    await viewModel.refresh()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                        }
+                    }
+                    
+                    HStack {
+                        Text("Status")
+                        Spacer()
+                        if apiKeyManager.isPremium {
+                            Label("Premium", systemImage: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Label("Free (Limited)", systemImage: "info.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    Button {
+                        showingAPIKeyInfo = true
+                    } label: {
+                        Label("Get Premium API Key", systemImage: "arrow.up.right")
+                    }
+                } header: {
+                    Text("TheSportsDB API")
+                } footer: {
+                    Text("Free tier shows limited games. Premium ($9/mo) unlocks full schedule and live scores.")
+                }
+                
                 Section("About") {
                     LabeledContent("League", value: "Unrivaled Basketball")
                     LabeledContent("Season", value: "2026")
@@ -195,6 +240,42 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .onAppear {
                 selectedTeamID = viewModel.favoriteTeamID
+                apiKeyInput = apiKeyManager.apiKey
+            }
+            .sheet(isPresented: $showingAPIKeyInfo) {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("TheSportsDB Premium")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text("Get full access to all games, scores, and live updates for $9/month.")
+                            .foregroundStyle(.secondary)
+                        
+                        Link(destination: URL(string: "https://www.thesportsdb.com/pricing")!) {
+                            Label("Sign Up at TheSportsDB.com", systemImage: "globe")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        
+                        Text("After signing up, copy your API key from your profile page and paste it in Settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                    }
+                    .padding()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") {
+                                showingAPIKeyInfo = false
+                            }
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
             }
         }
     }

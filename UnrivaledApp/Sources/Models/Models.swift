@@ -36,26 +36,54 @@ struct APIEvent: Codable, Identifiable {
     var id: String { idEvent }
     
     var game: Game {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let date = dateFormatter.date(from: dateEvent) ?? Date()
+        var gameDate = Date()
         
-        var gameDate = date
-        if let timeStr = strTime, !timeStr.isEmpty {
-            let timeFormatter = DateFormatter()
-            timeFormatter.dateFormat = "HH:mm:ssXXX"
-            if let time = timeFormatter.date(from: timeStr) {
-                let calendar = Calendar.current
-                let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-                gameDate = calendar.date(bySettingHour: timeComponents.hour ?? 0, 
-                                        minute: timeComponents.minute ?? 0, 
-                                        second: 0, of: date) ?? date
+        // Prefer strTimestamp (ISO 8601 format) for accurate date/time
+        if let timestamp = strTimestamp, !timestamp.isEmpty {
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withFullDate, .withTime, .withColonSeparatorInTime]
+            isoFormatter.timeZone = TimeZone(identifier: "UTC")
+            
+            // Handle both "2026-02-07T00:30:00" and malformed variants
+            let cleanTimestamp = String(timestamp.prefix(19)) // Take first 19 chars: yyyy-MM-ddTHH:mm:ss
+            if let parsed = isoFormatter.date(from: cleanTimestamp) {
+                gameDate = parsed
+            }
+        } else {
+            // Fallback to dateEvent + strTime
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.timeZone = TimeZone(identifier: "UTC")
+            gameDate = dateFormatter.date(from: dateEvent) ?? Date()
+            
+            if let timeStr = strTime, !timeStr.isEmpty {
+                // Handle "HH:mm:ss" format (may have extra :00)
+                let timeParts = timeStr.components(separatedBy: ":")
+                if timeParts.count >= 2,
+                   let hour = Int(timeParts[0]),
+                   let minute = Int(timeParts[1]) {
+                    let calendar = Calendar.current
+                    gameDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: gameDate) ?? gameDate
+                }
             }
         }
         
         let homeScore = intHomeScore.flatMap { Int($0) }
         let awayScore = intAwayScore.flatMap { Int($0) }
-        let isCompleted = homeScore != nil && awayScore != nil
+        
+        // Determine status
+        var status: GameStatus = .scheduled
+        if let statusStr = strStatus?.lowercased() {
+            if statusStr.contains("live") || statusStr.contains("progress") || statusStr == "1h" || statusStr == "2h" || statusStr == "ht" {
+                status = .live
+            } else if statusStr == "ft" || statusStr == "aet" || statusStr == "finished" {
+                status = .completed
+            }
+        }
+        // If we have scores but no live status, it's completed
+        if status == .scheduled && homeScore != nil && awayScore != nil {
+            status = .completed
+        }
         
         return Game(
             id: idEvent,
@@ -64,8 +92,50 @@ struct APIEvent: Codable, Identifiable {
             homeScore: homeScore,
             awayScore: awayScore,
             date: gameDate,
-            status: isCompleted ? .completed : (strStatus == "NS" ? .scheduled : .scheduled),
+            status: status,
             thumbnailURL: strThumb
+        )
+    }
+}
+
+// MARK: - V2 Livescore Response
+
+struct LivescoreResponse: Codable {
+    let livescores: [APILivescore]?
+}
+
+struct APILivescore: Codable, Identifiable {
+    let idEvent: String
+    let strEvent: String
+    let strHomeTeam: String
+    let strAwayTeam: String
+    let intHomeScore: String?
+    let intAwayScore: String?
+    let strProgress: String?
+    let strStatus: String?
+    let idHomeTeam: String?
+    let idAwayTeam: String?
+    let strHomeTeamBadge: String?
+    let strAwayTeamBadge: String?
+    let idLeague: String?
+    let strLeague: String?
+    
+    var id: String { idEvent }
+    
+    var game: Game {
+        let homeScore = intHomeScore.flatMap { Int($0) }
+        let awayScore = intAwayScore.flatMap { Int($0) }
+        
+        return Game(
+            id: idEvent,
+            homeTeam: Team(id: idHomeTeam ?? "", name: strHomeTeam, badgeURL: strHomeTeamBadge),
+            awayTeam: Team(id: idAwayTeam ?? "", name: strAwayTeam, badgeURL: strAwayTeamBadge),
+            homeScore: homeScore,
+            awayScore: awayScore,
+            date: Date(),
+            status: .live,
+            thumbnailURL: nil,
+            progress: strProgress
         )
     }
 }
@@ -138,9 +208,14 @@ struct Game: Codable, Identifiable {
     let date: Date
     let status: GameStatus
     let thumbnailURL: String?
+    var progress: String? = nil  // e.g., "Q2 5:30", "Halftime"
     
     var isCompleted: Bool {
         status == .completed
+    }
+    
+    var isLive: Bool {
+        status == .live
     }
     
     var scoreDisplay: String {
@@ -151,7 +226,7 @@ struct Game: Codable, Identifiable {
     }
     
     var winner: Team? {
-        guard let home = homeScore, let away = awayScore else { return nil }
+        guard let home = homeScore, let away = awayScore, isCompleted else { return nil }
         if home > away { return homeTeam }
         if away > home { return awayTeam }
         return nil

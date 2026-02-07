@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 class GamesViewModel: ObservableObject {
     @Published var allGames: [Game] = []
+    @Published var liveGames: [Game] = []
     @Published var isLoading = false
     @Published var error: String?
     
@@ -11,10 +12,11 @@ class GamesViewModel: ObservableObject {
     var favoriteTeamID: String = ""
     
     private let api = APIService.shared
+    private var liveUpdateTask: Task<Void, Never>?
     
     var upcomingGames: [Game] {
         allGames
-            .filter { !$0.isCompleted && $0.date >= Calendar.current.startOfDay(for: Date()) }
+            .filter { !$0.isCompleted && !$0.isLive && $0.date >= Calendar.current.startOfDay(for: Date()) }
             .sorted { $0.date < $1.date }
     }
     
@@ -22,6 +24,10 @@ class GamesViewModel: ObservableObject {
         allGames
             .filter { $0.isCompleted }
             .sorted { $0.date > $1.date }
+    }
+    
+    var hasLiveGames: Bool {
+        !liveGames.isEmpty
     }
     
     var favoriteTeamUpcoming: [Game] {
@@ -62,8 +68,12 @@ class GamesViewModel: ObservableObject {
             async let seasonGames = api.fetchSeasonGames()
             async let upcomingGames = api.fetchUpcomingGames()
             async let recentGames = api.fetchRecentResults()
+            async let liveGamesResult = api.fetchLiveGames()
             
-            let (season, upcoming, recent) = try await (seasonGames, upcomingGames, recentGames)
+            let (season, upcoming, recent, live) = try await (seasonGames, upcomingGames, recentGames, liveGamesResult)
+            
+            // Store live games separately
+            self.liveGames = live
             
             // Combine and deduplicate by game ID
             var gameDict: [String: Game] = [:]
@@ -71,12 +81,20 @@ class GamesViewModel: ObservableObject {
             for game in upcoming { gameDict[game.id] = game }
             for game in recent { gameDict[game.id] = game }
             
+            // Update with live data if available
+            for game in live { gameDict[game.id] = game }
+            
             self.allGames = Array(gameDict.values)
             
             // Save to widget storage
             let widgetProvider = WidgetDataProvider.shared
             widgetProvider.saveUpcomingGames(self.upcomingGames)
             widgetProvider.saveRecentGames(Array(completedGames.prefix(5)))
+            
+            // Start live update polling if there are live games
+            if !live.isEmpty {
+                startLiveUpdates()
+            }
         } catch {
             self.error = "Failed to load games: \(error.localizedDescription)"
             print("API Error: \(error)")
@@ -88,6 +106,43 @@ class GamesViewModel: ObservableObject {
     func refresh() async {
         await api.clearCache()
         await loadGames()
+    }
+    
+    // MARK: - Live Updates
+    
+    func startLiveUpdates() {
+        liveUpdateTask?.cancel()
+        liveUpdateTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
+                guard !Task.isCancelled else { break }
+                
+                do {
+                    let live = try await api.fetchLiveGames()
+                    await MainActor.run {
+                        self.liveGames = live
+                        // Update allGames with live data
+                        for game in live {
+                            if let index = self.allGames.firstIndex(where: { $0.id == game.id }) {
+                                self.allGames[index] = game
+                            }
+                        }
+                    }
+                    
+                    // Stop polling if no more live games
+                    if live.isEmpty {
+                        break
+                    }
+                } catch {
+                    print("Live update error: \(error)")
+                }
+            }
+        }
+    }
+    
+    func stopLiveUpdates() {
+        liveUpdateTask?.cancel()
+        liveUpdateTask = nil
     }
     
     // MARK: - Favorite Team

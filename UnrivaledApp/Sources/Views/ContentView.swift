@@ -37,7 +37,7 @@ struct ScheduleView: View {
             Group {
                 if viewModel.isLoading && viewModel.allGames.isEmpty {
                     ProgressView("Loading schedule...")
-                } else if viewModel.upcomingGames.isEmpty {
+                } else if viewModel.upcomingGames.isEmpty && viewModel.liveGames.isEmpty {
                     ContentUnavailableView(
                         "No Upcoming Games",
                         systemImage: "calendar.badge.exclamationmark",
@@ -45,6 +45,23 @@ struct ScheduleView: View {
                     )
                 } else {
                     List {
+                        // Live games section
+                        if !viewModel.liveGames.isEmpty {
+                            Section {
+                                ForEach(viewModel.liveGames) { game in
+                                    LiveGameRow(game: game)
+                                }
+                            } header: {
+                                HStack {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 8, height: 8)
+                                    Text("LIVE NOW")
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                        }
+                        
                         if let fav = viewModel.favoriteTeam, !viewModel.favoriteTeamUpcoming.isEmpty {
                             Section {
                                 ForEach(viewModel.favoriteTeamUpcoming.prefix(3)) { game in
@@ -61,7 +78,7 @@ struct ScheduleView: View {
                             }
                         }
                         
-                        Section("All Upcoming") {
+                        Section("Upcoming") {
                             ForEach(viewModel.upcomingGames) { game in
                                 GameRow(game: game)
                             }

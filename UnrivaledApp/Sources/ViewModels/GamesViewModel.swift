@@ -58,12 +58,24 @@ class GamesViewModel: ObservableObject {
         error = nil
         
         do {
-            let games = try await api.fetchSeasonGames()
-            self.allGames = games
+            // Fetch from all endpoints and combine (free tier has limits per endpoint)
+            async let seasonGames = api.fetchSeasonGames()
+            async let upcomingGames = api.fetchUpcomingGames()
+            async let recentGames = api.fetchRecentResults()
+            
+            let (season, upcoming, recent) = try await (seasonGames, upcomingGames, recentGames)
+            
+            // Combine and deduplicate by game ID
+            var gameDict: [String: Game] = [:]
+            for game in season { gameDict[game.id] = game }
+            for game in upcoming { gameDict[game.id] = game }
+            for game in recent { gameDict[game.id] = game }
+            
+            self.allGames = Array(gameDict.values)
             
             // Save to widget storage
             let widgetProvider = WidgetDataProvider.shared
-            widgetProvider.saveUpcomingGames(upcomingGames)
+            widgetProvider.saveUpcomingGames(self.upcomingGames)
             widgetProvider.saveRecentGames(Array(completedGames.prefix(5)))
         } catch {
             self.error = "Failed to load games: \(error.localizedDescription)"

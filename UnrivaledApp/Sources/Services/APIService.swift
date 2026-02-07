@@ -1,13 +1,50 @@
 import Foundation
 
+// MARK: - API Key Manager
+
+class APIKeyManager: ObservableObject {
+    static let shared = APIKeyManager()
+    
+    private let key = "thesportsdb_api_key"
+    private let defaultKey = "123" // Free tier key
+    
+    @Published var apiKey: String {
+        didSet {
+            UserDefaults.standard.set(apiKey, forKey: key)
+            // Also save to App Group for widget access
+            UserDefaults(suiteName: "group.com.unrivaled.app")?.set(apiKey, forKey: key)
+        }
+    }
+    
+    var isPremium: Bool {
+        apiKey != defaultKey && !apiKey.isEmpty
+    }
+    
+    init() {
+        self.apiKey = UserDefaults.standard.string(forKey: key) ?? defaultKey
+    }
+    
+    func resetToFree() {
+        apiKey = defaultKey
+    }
+}
+
 // MARK: - API Service
 
 actor APIService {
     static let shared = APIService()
     
-    private let baseURL = "https://www.thesportsdb.com/api/v1/json/123"
+    private let baseURLPrefix = "https://www.thesportsdb.com/api/v1/json/"
     private let leagueID = "5622"
     private let currentSeason = "2026"
+    
+    private var apiKey: String {
+        APIKeyManager.shared.apiKey
+    }
+    
+    private var baseURL: String {
+        baseURLPrefix + apiKey
+    }
     
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()

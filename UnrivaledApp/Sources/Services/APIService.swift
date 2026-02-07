@@ -127,6 +127,28 @@ actor APIService {
         return response.table ?? []
     }
     
+    /// Fetch live games (V2 API - requires premium)
+    func fetchLiveGames() async throws -> [Game] {
+        guard APIKeyManager.shared.isPremium else { return [] }
+        
+        let cacheKey = "livescores"
+        if let cached: [Game] = cache.get(key: cacheKey) {
+            return cached
+        }
+        
+        // V2 API uses header auth
+        let url = URL(string: "https://www.thesportsdb.com/api/v2/json/livescore/\(leagueID)")!
+        var request = URLRequest(url: url)
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-KEY")
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try decoder.decode(LivescoreResponse.self, from: data)
+        let games = response.livescores?.map { $0.game } ?? []
+        
+        cache.set(key: cacheKey, value: games, ttl: 30) // 30 second cache for live data
+        return games
+    }
+    
     /// Clear cache
     func clearCache() {
         cache.clear()

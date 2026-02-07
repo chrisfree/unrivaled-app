@@ -68,7 +68,7 @@ class GamesViewModel: ObservableObject {
             async let seasonGames = api.fetchSeasonGames()
             async let upcomingGames = api.fetchUpcomingGames()
             async let recentGames = api.fetchRecentResults()
-            async let liveGamesResult = api.fetchLiveGames()
+            async let liveGamesResult = api.fetchLiveGamesWithFallback()
             
             let (season, upcoming, recent, live) = try await (seasonGames, upcomingGames, recentGames, liveGamesResult)
             

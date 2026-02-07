@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -50,9 +50,9 @@
 		87F4137950FC33F2E39BA213 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		90FF0FB33AA53D40F378C6AF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		94CF626A9955E13A8577A059 /* GamesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamesViewModel.swift; sourceTree = "<group>"; };
-		CDCE880B51BC10DDD2FF1D38 /* UnrivaledWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = UnrivaledWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDCE880B51BC10DDD2FF1D38 /* UnrivaledWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UnrivaledWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8A4DBA1CC069119EC350FFB /* UnrivaledWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnrivaledWidget.swift; sourceTree = "<group>"; };
-		E8C23B67AF810AD23CCC3688 /* Unrivaled.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Unrivaled.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8C23B67AF810AD23CCC3688 /* Unrivaled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Unrivaled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -177,14 +177,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					24C8588724768CBDD65C492C = {
-						DevelopmentTeam = "";
-					};
-					B78B600988A220E0412DEAD4 = {
-						DevelopmentTeam = "";
-					};
-				};
 			};
 			buildConfigurationList = 2C6400BD5337F622D3722E2E /* Build configuration list for PBXProject "Unrivaled" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -196,7 +188,6 @@
 			);
 			mainGroup = 9CBA2D8061FFDEEBB6EEC512;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -244,6 +235,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = UnrivaledWidget/UnrivaledWidget.entitlements;
+				DEVELOPMENT_TEAM = BR64C5CNSD;
 				INFOPLIST_FILE = UnrivaledWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -262,6 +254,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = UnrivaledApp/Resources/Unrivaled.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = BR64C5CNSD;
 				INFOPLIST_FILE = UnrivaledApp/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -278,6 +271,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = UnrivaledWidget/UnrivaledWidget.entitlements;
+				DEVELOPMENT_TEAM = BR64C5CNSD;
 				INFOPLIST_FILE = UnrivaledWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -421,6 +415,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = UnrivaledApp/Resources/Unrivaled.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = BR64C5CNSD;
 				INFOPLIST_FILE = UnrivaledApp/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

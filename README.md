@@ -8,6 +8,7 @@ iOS app for the Unrivaled Basketball League - a women's professional 3v3 basketb
 - 🏀 **Results** - See completed game scores
 - ⭐ **Favorites** - Track your favorite team
 - 📱 **Widgets** - Home screen widgets for quick score updates
+- 🔴 **Live Scores** - Real-time updates when games are in progress
 
 ## Setup
 
@@ -34,6 +35,15 @@ iOS app for the Unrivaled Basketball League - a women's professional 3v3 basketb
    open Unrivaled.xcodeproj
    ```
 
+### Dependencies
+
+Add SwiftSoup for HTML parsing (used by live score scraper fallback):
+
+In Xcode: File → Add Package Dependencies → Enter:
+```
+https://github.com/scinfu/SwiftSoup.git
+```
+
 ### Manual Setup (Alternative)
 
 If you prefer not to use xcodegen:
@@ -43,6 +53,7 @@ If you prefer not to use xcodegen:
 3. Copy the source files into the appropriate groups
 4. Add App Group capability (`group.com.unrivaled.app`) to both targets
 5. Set deployment target to iOS 17.0
+6. Add SwiftSoup package dependency
 
 ### App Group Setup
 
@@ -51,12 +62,22 @@ Both the main app and widget need the App Group capability:
 - Add "App Groups"
 - Create group: `group.com.unrivaled.app`
 
+### API Key Setup
+
+1. Get a free or premium API key from [TheSportsDB](https://www.thesportsdb.com)
+2. Open the app → Settings → Enter your API key
+3. Premium ($9/mo) unlocks full schedule (56 games vs 15)
+
 ## API
 
-Uses [TheSportsDB](https://www.thesportsdb.com) free API.
-- No API key required for basic usage (uses key `123`)
-- Rate limit: 30 requests/minute
+Uses [TheSportsDB](https://www.thesportsdb.com) API.
+- Free tier: Key `123`, limited to 15 games per endpoint
+- Premium ($9/mo): Full data access, livescores
 - League ID: 5622
+
+### Live Score Fallback
+
+TheSportsDB may not have live score coverage for Unrivaled. The app includes a scraper fallback that fetches live data directly from unrivaled.basketball when the API has no live games.
 
 ## Project Structure
 
@@ -67,7 +88,8 @@ unrivaled-app/
 │   │   ├── Models/
 │   │   │   └── Models.swift          # Data models
 │   │   ├── Services/
-│   │   │   └── APIService.swift      # API client
+│   │   │   ├── APIService.swift      # API client
+│   │   │   └── LiveScoreScraper.swift # Fallback scraper
 │   │   ├── ViewModels/
 │   │   │   └── GamesViewModel.swift  # Main view model
 │   │   ├── Views/

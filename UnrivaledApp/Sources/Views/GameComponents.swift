@@ -1,5 +1,79 @@
 import SwiftUI
 
+// MARK: - Live Game Row
+
+struct LiveGameRow: View {
+    let game: Game
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Live indicator
+            HStack {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 8, height: 8)
+                    Text("LIVE")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.red)
+                }
+                
+                if let progress = game.progress {
+                    Text("• \(progress)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+            }
+            
+            // Teams with live score
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        AsyncImage(url: URL(string: game.homeTeam.badgeURL ?? "")) { image in
+                            image.resizable().scaledToFit()
+                        } placeholder: {
+                            Circle().fill(.gray.opacity(0.3))
+                        }
+                        .frame(width: 28, height: 28)
+                        
+                        Text(game.homeTeam.shortName)
+                            .font(.headline)
+                    }
+                    
+                    HStack {
+                        AsyncImage(url: URL(string: game.awayTeam.badgeURL ?? "")) { image in
+                            image.resizable().scaledToFit()
+                        } placeholder: {
+                            Circle().fill(.gray.opacity(0.3))
+                        }
+                        .frame(width: 28, height: 28)
+                        
+                        Text(game.awayTeam.shortName)
+                            .font(.headline)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(game.homeScore ?? 0)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                    Text("\(game.awayScore ?? 0)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK: - Game Row (Upcoming)
 
 struct GameRow: View {

@@ -36,37 +36,55 @@ struct APIEvent: Codable, Identifiable {
     var id: String { idEvent }
     
     var game: Game {
-        var gameDate = Date()
+        var gameDate: Date? = nil
+        var hasValidTime = false
         
-        // Prefer strTimestamp (ISO 8601 format) for accurate date/time
-        if let timestamp = strTimestamp, !timestamp.isEmpty {
+        // Try to parse timestamp first (most reliable when present)
+        // Format: "2026-02-07T00:30:00" - this is UTC time
+        if let timestamp = strTimestamp, timestamp.count >= 19 {
+            let cleanTimestamp = String(timestamp.prefix(19))
             let isoFormatter = ISO8601DateFormatter()
             isoFormatter.formatOptions = [.withFullDate, .withTime, .withColonSeparatorInTime]
             isoFormatter.timeZone = TimeZone(identifier: "UTC")
             
-            // Handle both "2026-02-07T00:30:00" and malformed variants
-            let cleanTimestamp = String(timestamp.prefix(19)) // Take first 19 chars: yyyy-MM-ddTHH:mm:ss
             if let parsed = isoFormatter.date(from: cleanTimestamp) {
                 gameDate = parsed
+                hasValidTime = true
             }
-        } else {
-            // Fallback to dateEvent + strTime
+        }
+        
+        // Fallback: try dateEvent + strTime
+        if gameDate == nil {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
             dateFormatter.timeZone = TimeZone(identifier: "UTC")
-            gameDate = dateFormatter.date(from: dateEvent) ?? Date()
             
-            if let timeStr = strTime, !timeStr.isEmpty {
-                // Handle "HH:mm:ss" format (may have extra :00)
-                let timeParts = timeStr.components(separatedBy: ":")
-                if timeParts.count >= 2,
-                   let hour = Int(timeParts[0]),
-                   let minute = Int(timeParts[1]) {
-                    let calendar = Calendar.current
-                    gameDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: gameDate) ?? gameDate
+            if let baseDateParsed = dateFormatter.date(from: dateEvent) {
+                var finalDate = baseDateParsed
+                
+                // Try to add time if available
+                if let timeStr = strTime, !timeStr.isEmpty {
+                    let timeParts = timeStr.components(separatedBy: ":")
+                    if timeParts.count >= 2,
+                       let hour = Int(timeParts[0]),
+                       let minute = Int(timeParts[1]) {
+                        var components = Calendar.current.dateComponents(in: TimeZone(identifier: "UTC")!, from: baseDateParsed)
+                        components.hour = hour
+                        components.minute = minute
+                        components.second = 0
+                        if let withTime = Calendar.current.date(from: components) {
+                            finalDate = withTime
+                            hasValidTime = true
+                        }
+                    }
                 }
+                
+                gameDate = finalDate
             }
         }
+        
+        // Last resort: use current date (but flag as no valid time)
+        let finalGameDate = gameDate ?? Date()
         
         let homeScore = intHomeScore.flatMap { Int($0) }
         let awayScore = intAwayScore.flatMap { Int($0) }
@@ -91,9 +109,10 @@ struct APIEvent: Codable, Identifiable {
             awayTeam: Team(id: idAwayTeam ?? "", name: strAwayTeam, badgeURL: strAwayTeamBadge),
             homeScore: homeScore,
             awayScore: awayScore,
-            date: gameDate,
+            date: finalGameDate,
             status: status,
-            thumbnailURL: strThumb
+            thumbnailURL: strThumb,
+            hasValidTime: hasValidTime
         )
     }
 }
@@ -209,6 +228,7 @@ struct Game: Codable, Identifiable {
     let status: GameStatus
     let thumbnailURL: String?
     var progress: String? = nil  // e.g., "Q2 5:30", "Halftime"
+    var hasValidTime: Bool = true  // false when API didn't provide time
     
     var isCompleted: Bool {
         status == .completed
@@ -230,6 +250,19 @@ struct Game: Codable, Identifiable {
         if home > away { return homeTeam }
         if away > home { return awayTeam }
         return nil
+    }
+    
+    /// Formatted time string - shows "TBD" if no valid time from API
+    var timeDisplay: String {
+        if !hasValidTime {
+            return "TBD"
+        }
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+    
+    /// Formatted date in user's local timezone
+    var dateDisplay: String {
+        date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 

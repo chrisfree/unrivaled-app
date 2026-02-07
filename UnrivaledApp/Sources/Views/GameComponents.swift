@@ -84,13 +84,13 @@ struct GameRow: View {
         VStack(alignment: .leading, spacing: 8) {
             // Date/Time
             HStack {
-                Text(game.date.formatted(date: .abbreviated, time: .omitted))
+                Text(game.dateDisplay)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(game.date.formatted(date: .omitted, time: .shortened))
+                Text(game.timeDisplay)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(game.hasValidTime ? .secondary : .orange)
             }
             
             // Teams
@@ -119,7 +119,7 @@ struct ResultRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Date
-            Text(game.date.formatted(date: .abbreviated, time: .omitted))
+            Text(game.dateDisplay)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             
